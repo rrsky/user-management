@@ -1,101 +1,181 @@
-import Image from "next/image";
+'use client'
+import { useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [message, setMessage] = useState('')
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    
+    try {
+      const userData = {
+        email: formData.get('email'),
+        personal_info: {
+          first_name: formData.get('firstName') || null,
+          last_name: formData.get('lastName') || null,
+          age: formData.get('age') ? parseInt(formData.get('age') as string) : null,
+          location: formData.get('location') || null,
+          joined_date: new Date().toISOString().split('T')[0]
+        },
+        preferences: {
+          product_categories: formData.get('categories') ? 
+            (formData.get('categories') as string).split(',').map(c => c.trim()) : 
+            [],
+          communication_preferences: {
+            opt_in_marketing: formData.get('optIn') === 'yes'
+          }
+        },
+        purchase_history: {
+          total_purchases: parseInt(formData.get('totalPurchases') as string) || 0,
+          purchases_last_30_days: parseInt(formData.get('recentPurchases') as string) || 0,
+          days_since_last_purchase: parseInt(formData.get('daysSinceLastPurchase') as string) || null,
+        },
+        interactions: {
+          customer_service_last_30_days: parseInt(formData.get('customerServiceContacts') as string) || 0,
+          returns: 0,
+          website_visits_last_month: 0
+        },
+        survey_history: [],
+        profile_status: 'active'
+      }
+
+      const { error } = await supabase
+        .from('users')
+        .insert([userData])
+
+      if (error) throw error
+
+      setMessage('User created successfully!')
+      ;(e.target as HTMLFormElement).reset()
+    } catch (error: any) {
+      setMessage('Error: ' + error.message)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl bg-white p-8 rounded-lg">
+        <h1 className="text-2xl font-semibold text-black mb-8 text-center">Create New User</h1>
+        
+        {message && (
+          <div className={`p-4 mb-6 rounded text-black ${
+            message.includes('Error') ? 'bg-red-100' : 'bg-green-100'
+          }`}>
+            {message}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <h2 className="text-xl font-medium text-black">Basic Information</h2>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email *"
+              required
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                name="firstName"
+                placeholder="First Name"
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              />
+              <input
+                type="text"
+                name="lastName"
+                placeholder="Last Name"
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              />
+            </div>
+            <input
+              type="number"
+              name="age"
+              placeholder="Age"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            />
+            <input
+              type="text"
+              name="location"
+              placeholder="Location"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            />
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-medium text-black">Purchase History & Interactions</h2>
+            <input
+              type="number"
+              name="totalPurchases"
+              placeholder="Number of purchases lifetime"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            />
+            <input
+              type="number"
+              name="recentPurchases"
+              placeholder="Number of purchases last 30 days"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            />
+            <input
+              type="number"
+              name="daysSinceLastPurchase"
+              placeholder="Days since last purchase"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            />
+            <input
+              type="number"
+              name="customerServiceContacts"
+              placeholder="Number of customer service contacts last 30 days"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            />
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-medium text-black">Preferences</h2>
+            <input
+              type="text"
+              name="categories"
+              placeholder="Product Categories (comma-separated)"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            />
+            <div className="space-y-2">
+              <label className="text-black font-medium">Marketing Opt-in *</label>
+              <div className="flex gap-6">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="optIn"
+                    value="yes"
+                    required
+                    className="mr-2"
+                  />
+                  <span className="text-black">Yes</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="optIn"
+                    value="no"
+                    required
+                    className="mr-2"
+                  />
+                  <span className="text-black">No</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full p-3 text-white bg-blue-500 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
           >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            Create User
+          </button>
+        </form>
+      </div>
     </div>
-  );
+  )
 }
