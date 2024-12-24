@@ -49,7 +49,7 @@ export default function Home() {
 
       setMessage('User created successfully!')
       ;(e.target as HTMLFormElement).reset()
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       setMessage('Error: ' + error.message)
     }
   }
